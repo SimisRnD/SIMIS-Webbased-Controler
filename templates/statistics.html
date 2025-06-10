@@ -1,0 +1,99 @@
+{% extends "index.html" %}
+
+{% block heading %} 
+<title>Statistics Report</title>
+<style>
+    /* Add some styling for the table and chart */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+    }
+    th, td {
+        padding: 8px 12px;
+        text-align: left;
+        border: 1px solid #ddd;
+    }
+    th {
+        background-color: #cc8126;
+    }
+    .chart-container {
+        width: 50%;
+        margin: auto;
+    }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+{% endblock %}
+
+{% block content %}
+<h1>Statistics Report</h1>
+
+<h2>Sample Data Table</h2>
+<table>
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Value</th>
+            <th>Percentage</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr>
+            <td>Category 1</td>
+            <td>150</td>
+            <td>25%</td>
+        </tr>
+        <tr>
+            <td>Category 2</td>
+            <td>300</td>
+            <td>50%</td>
+        </tr>
+        <tr>
+            <td>Category 3</td>
+            <td>100</td>
+            <td>16.7%</td>
+        </tr>
+        <tr>
+            <td>Category 4</td>
+            <td>50</td>
+            <td>8.3%</td>
+        </tr>
+    </tbody>
+</table>
+
+<h2>Distribution Pie Chart</h2>
+<div class="chart-container">
+    <canvas id="pieChart"></canvas>
+</div>
+
+<script>
+    var ctx = document.getElementById('pieChart').getContext('2d');
+    var pieChart = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: ['Category 1', 'Category 2', 'Category 3', 'Category 4'],
+            datasets: [{
+                data: [150, 300, 100, 50],
+                backgroundColor: ['#FF5733', '#33FF57', '#3357FF', '#FF33A6'],
+                hoverOffset: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    callbacks: {
+                        label: function(tooltipItem) {
+                            return tooltipItem.label + ': ' + tooltipItem.raw + ' (' + ((tooltipItem.raw / 600) * 100).toFixed(2) + '%)';
+                        }
+                    }
+                }
+            }
+        }
+    });
+</script>
+
+{% endblock %}

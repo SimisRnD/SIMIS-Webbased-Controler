@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QR Code Display</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #1e1e1e;
+            color: #ffffff;
+        }
+        .container {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            align-items: center;
+        }
+        .qr-code {
+            text-align: center;
+        }
+        img {
+            width: 200px;
+            height: 200px;
+            border: 2px solid #ffffff;
+            border-radius: 10px;
+        }
+        h2 {
+            font-size: 18px;
+            margin-top: 10px;
+        }
+        p {
+            font-size: 16px;
+            color: #bbb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Instruction text -->
+        <h1>Scan QR Codes in the Following Order</h1>
+        <p>Please follow these steps to complete the setup. The order is important:</p>
+        
+        <!-- Wi-Fi QR Code
+        <div class="qr-code">
+            <img src="static/wifi_qr_code.png" alt="Wi-Fi QR Code">
+            <h2>1. Join Network</h2>
+            <p>Scan the Wi-Fi QR code to connect your device to the network.</p>
+        </div> -->
+        
+        <!-- URL QR Code -->
+        <div class="qr-code">
+            <img src="static/url_qr_code.png" alt="URL QR Code">
+            <h2>1. Open Controller</h2>
+            <p>Scan the URL QR code to open the controller page in your browser.</p>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,852 @@
+{% extends "index.html" %}
+
+{% block heading %} 
+<title>Mobile Controller</title>
+<script src="static/map.js"></script>
+<link rel="stylesheet" href="static/map.css">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<style>
+    /* Mobile-optimized styling */
+    body {
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        height: 100%;
+        touch-action: none;
+    }
+
+    .content {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+        background-color: #121212;
+        color: #f5f5f5;
+        position: relative;
+        overflow: hidden;
+    }
+
+    /* Map styles */
+    #map {
+        width: 100%;
+        height: 50vh;
+        border-bottom: 2px solid #333;
+        z-index: 100;
+    }
+
+    #map.collapsed {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 120px;
+        height: 90px;
+        border-radius: 8px;
+        opacity: 0.75;
+        border: 2px solid #333;
+        z-index: 900;
+    }
+
+    /* Video feed styles */
+    .videofeed {
+        width: 100%;
+        height: 40vh;
+        border-bottom: 2px solid #333;
+        display: none;
+        z-index: 100;
+    }
+
+    .videofeed.collapsed {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        width: 120px;
+        height: 90px;
+        border-radius: 8px;
+        opacity: 0.75;
+        border: 2px solid #333;
+        z-index: 900;
+    }
+
+    /* Control panels */
+    .control-panels {
+        display: flex;
+        flex-direction: column;
+        padding: 10px;
+        height: 60vh;
+        overflow-y: auto;
+    }
+
+    /* Joystick container */
+    .joystick-container {
+        position: fixed;
+        bottom: 15px;
+        right: 15px;
+        width: 120px;
+        height: 120px;
+        background-color: rgba(51, 51, 51, 0.5);
+        border-radius: 50%;
+        border: 2px solid #333;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        z-index: 1000;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .joystick {
+        width: 40px;
+        height: 40px;
+        background-color: #2979ff;
+        border-radius: 50%;
+        position: absolute;
+        touch-action: none;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Button controls */
+    .button-panel {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 10px;
+    }
+
+    .button-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+    }
+
+    .button-group {
+        background-color: rgba(30, 30, 30, 0.8);
+        border: 1px solid rgba(51, 51, 51, 0.8);
+        border-radius: 10px;
+        padding: 8px;
+        margin-bottom: 8px;
+    }
+
+    .button-group h2 {
+        font-size: 14px;
+        margin-bottom: 8px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        text-align: center;
+    }
+
+    .button {
+        height: 40px;
+        background-color: #1e1e1e;
+        border-radius: 8px;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 14px;
+        color: white;
+        cursor: pointer;
+        transition: all 0.2s;
+        box-shadow: 0 2px 3px rgba(0, 0, 0, 0.2);
+        flex: 1;
+        text-align: center;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+
+    .button:active {
+        background-color: #2979ff;
+        transform: translateY(2px);
+    }
+
+    /* Direction pad layout */
+    .dpad {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        grid-template-rows: repeat(3, 1fr);
+        gap: 5px;
+        width: 160px;
+        height: 160px;
+    }
+
+    .dpad .button {
+        width: 100%;
+        height: 100%;
+    }
+
+    .up-btn {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    .left-btn {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .center-btn {
+        grid-column: 2;
+        grid-row: 2;
+    }
+
+    .right-btn {
+        grid-column: 3;
+        grid-row: 2;
+    }
+
+    .down-btn {
+        grid-column: 2;
+        grid-row: 3;
+    }
+
+    /* Toggle controls button */
+    .toggle-buttons {
+        position: fixed;
+        left: 65px; /* Position to the right of collapsed sidebar */
+        bottom: 15px;
+        background-color: #1e1e1e;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+        color: white;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+        z-index: 999;
+        font-size: 14px;
+    }
+
+    .toggle-buttons:active {
+        background-color: #2979ff;
+        transform: translateY(2px);
+    }
+
+    /* Waypoint panel styles */
+    .waypoint-panel {
+        position: fixed;
+        top: 70px;
+        left: 10px;
+        background-color: rgba(30, 30, 30, 0.9);
+        border-radius: 10px;
+        padding: 10px;
+        color: white;
+        z-index: 1000;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+        width: calc(100% - 20px);
+        max-width: 300px;
+        display: none;
+    }
+
+    .waypoint-panel h2 {
+        margin-top: 0;
+        margin-bottom: 10px;
+        font-size: 14px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .waypoint-panel input {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        border-radius: 5px;
+        border: 1px solid #333;
+        background-color: #2c2c2c;
+        color: white;
+        box-sizing: border-box;
+    }
+
+    .map-controls {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        z-index: 1000;
+        display: flex;
+        gap: 10px;
+    }
+
+    .map-controls .button {
+        background-color: rgba(30, 30, 30, 0.9);
+        color: white;
+        width: auto;
+        padding: 5px 10px;
+    }
+
+    /* Make sidebar smaller and always collapsed on mobile */
+    @media (max-width: 768px) {
+        .sidebar {
+            width: 50px !important;
+        }
+        
+        .sidebar .nav span,
+        .sidebar .sidebar-header h2 {
+            display: none;
+        }
+        
+        .content {
+            width: calc(100% - 50px);
+            margin-left: 50px;
+        }
+        
+        .toggle-buttons {
+            left: 60px;
+        }
+    }
+    
+    /* Additional twist buttons */
+    .twist-buttons {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        margin-top: 5px;
+    }
+    
+    /* Hide collapsed controls initially */
+    .buttons.collapsed {
+        display: none;
+    }
+</style>
+<script>
+    // Button Press Event
+    function buttonPress(buttonName) {
+        const buttonurl = '/_buttons';
+        let buttondata = {BUTTON: buttonName}
+        sendJsonData(buttonurl, buttondata);
+    }
+
+    // Direction button press
+    function directionPress(direction) {
+        let targeturl = '/_joystick_b';
+        let angle = 0;
+        
+        switch(direction) {
+            case 'up':
+                angle = Math.PI / 2.0;
+                break;
+            case 'down':
+                angle = 3.0 * Math.PI / 2.0;
+                break;
+            case 'left':
+                angle = Math.PI;
+                break;
+            case 'right':
+                angle = 0;
+                break;
+        }
+        
+        let joystick_data = {
+            POWER: 1.0,
+            ANGLE: angle,
+        };
+        
+        sendJsonData(targeturl, joystick_data);
+        
+        // Stop after 600ms
+        setTimeout(() => {
+            const joystick_zero = {
+                POWER: 0.0,
+                ANGLE: 0,
+            };
+            sendJsonData('/_joystick', joystick_zero);
+        }, 600);
+    }
+    
+    // Enter button press
+    function enterPress(status) {
+        sendJsonData('/select', {status: status});
+    }
+    
+    // Twist button press
+    function twistPress(direction) {
+        sendJsonData('/twist', {dir: direction});
+    }
+
+    async function getGPSInfo() {
+        try {
+            const response = await fetch('/_gps/info');
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}`);
+            }
+            
+            const data = await response.json();
+            console.log("GPS Data:", data);
+            
+            return data;
+        } catch (error) {
+            console.error("Error fetching GPS info:", error);
+            return null;
+        }
+    }
+
+    function submitWaypoint() {
+        const waypointName = document.getElementById('waypointName').value.trim();
+        
+        if (waypointName.length === 0) {
+            alert('Please enter a waypoint name');
+            return;
+        }
+        
+        if (waypointName.length > 5) {
+            alert('Waypoint name must be 5 characters or less');
+            return;
+        }
+        
+        if (clickedPoints.length === 0) {
+            alert('Please click on the map to select at least one waypoint location');
+            return;
+        }
+        
+        const waypoint_url = '/_gps/make_scen';
+        const waypoint_data = {
+            TAR: 'current',
+            NAME: waypointName
+        };
+        
+        sendJsonData(waypoint_url, waypoint_data);
+        alert('Waypoints submitted with name: ' + waypointName);
+    }
+
+    // Function to toggle waypoint panel visibility
+    function toggleWaypointPanel() {
+        const waypointPanel = document.querySelector('.waypoint-panel');
+        if (clickedPoints.length > 0) {
+            waypointPanel.style.display = 'block';
+        } else {
+            waypointPanel.style.display = 'none';
+        }
+    }
+</script>
+<script>
+    var map;
+    // Arrays to store markers and polylines
+    var clickedPoints = [];
+    var markers = [];
+    var polylines = [];
+    
+    function onMapClick(e) {
+        var lat = e.latlng.lat;
+        var lng = e.latlng.lng;
+        let waypoint_url = '/_gps/add_way_point'
+        var waypoint_data = {
+            TAR: document.getElementById('waypointName').value || 'current',
+            LAT: lat,
+            LON: lng
+        }
+        sendJsonData(waypoint_url, waypoint_data);
+
+        // Add a marker at the clicked location
+        var marker = L.circleMarker([lat, lng], {
+            color: '#2979ff',
+            fillColor: '#2979ff',
+            fillOpacity: 0.7,
+            radius: 6,
+            weight: 2
+        }).addTo(map);
+        markers.push(marker);
+
+        // Save the clicked point for drawing a line
+        clickedPoints.push([lat, lng]);
+
+        // If there are at least two points, draw a line
+        if (clickedPoints.length > 1) {
+            var polyline = L.polyline(clickedPoints, { 
+                color: '#2979ff',
+                weight: 3,
+                opacity: 0.7
+            }).addTo(map);
+            polylines.push(polyline);
+        }
+        
+        // Show waypoint panel when points exist
+        toggleWaypointPanel();
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        map = L.map('map').setView([36.7282, -76.5836], 20);
+
+        // Add a satellite tile layer
+        L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+            attribution: '&copy; SIMIS Inc.'
+        }).addTo(map);
+
+        // Attach the click event listener
+        map.on('click', onMapClick);
+
+        // Handle undo button
+        document.getElementById('undoBtn').addEventListener('click', function() {
+            // Remove last point and line if they exist
+            if (markers.length > 0) {
+                var lastMarker = markers.pop();
+                map.removeLayer(lastMarker);
+            }
+            if (polylines.length > 0) {
+                var lastPolyline = polylines.pop();
+                map.removeLayer(lastPolyline);
+            }
+
+            // Also remove the last clicked point for the line
+            if (clickedPoints.length > 0) {
+                clickedPoints.pop();
+            }
+            
+            // Toggle waypoint panel visibility
+            toggleWaypointPanel();
+        });
+
+        // Handle clear all button
+        document.getElementById('clearAllBtn').addEventListener('click', function() {
+            // Remove all feature layers (markers, polylines)
+            markers.forEach(function(marker) {
+                map.removeLayer(marker);
+            });
+            polylines.forEach(function(polyline) {
+                map.removeLayer(polyline);
+            });
+
+            // Clear the arrays
+            markers = [];
+            polylines = [];
+            clickedPoints = [];
+            
+            // Hide waypoint panel when all points are cleared
+            toggleWaypointPanel();
+        });
+    });
+
+    document.addEventListener("keydown", function(event) {
+        let targeturl = '/_joystick_b';
+        let joystick_data = {
+            POWER: 1.0,
+            ANGLE: 0,
+        };
+        
+        let handled = true;
+
+        switch (event.key) {
+            case "ArrowUp":
+                joystick_data.ANGLE = Math.PI / 2.0;
+                break;
+            case "ArrowDown":
+                joystick_data.ANGLE = 3.0 * Math.PI / 2.0;
+                break;
+            case "ArrowLeft":
+                joystick_data.ANGLE = Math.PI;
+                break;
+            case "ArrowRight":
+                joystick_data.ANGLE = 0;
+                break;
+            case "Enter":
+                targeturl = '/select';
+                joystick_data = { status: 1 };
+                break;
+            case "+":
+                targeturl = '/twist';
+                joystick_data = { dir: 1 };
+                break;
+            case "-":
+                targeturl = '/twist';
+                joystick_data = { dir: -1 };
+                break;
+            default:
+                handled = false;
+        }
+
+        if (handled) {
+            sendJsonData(targeturl, joystick_data);
+        }
+    });
+
+    document.addEventListener("keyup", function(event) {
+        let handled = true;
+
+        switch (event.key) {
+            case "ArrowUp":
+            case "ArrowDown":
+            case "ArrowLeft":
+            case "ArrowRight":
+            case "Enter":
+            case "+":
+            case "-":
+                break;
+            default:
+                handled = false;
+        }
+
+        if (handled) {
+            const joystick_zero = {
+                POWER: 0.0,
+                ANGLE: 0,
+            };
+            const targeturl = '/_joystick';
+            setTimeout(() => sendJsonData(targeturl, joystick_zero), 600);
+            sendJsonData('/select', {status:0});
+        }
+    });
+
+    let locationMarker = null;  // Store the marker reference
+    
+    async function updateMapWithGPS() {
+        try {
+            const data = await getGPSInfo();  // Fetch GPS data
+            if (data) {
+                const lat = data.lat;
+                const lon = data.lon;
+                console.log(data)
+
+                // Move the map to the new location
+                map.setView([lat, lon]);
+
+                // If marker doesn't exist, create one; otherwise, update its position
+                if (!locationMarker) {
+                    locationMarker = L.circleMarker([lat, lon], {
+                        color: '#e74c3c',
+                        fillColor: '#e74c3c',
+                        fillOpacity: 0.8,
+                        radius: 8,
+                        weight: 2
+                    }).addTo(map);
+                } else {
+                    locationMarker.setLatLng([lat, lon]);  // Update position
+                }
+            }
+        } catch (error) {
+            console.error("Error updating map with GPS:", error);
+        }
+    }
+    
+    // Call the function when the page loads
+    document.addEventListener('DOMContentLoaded', function () {
+        updateMapWithGPS();
+
+        // Update the map periodically (every 5 seconds)
+        setInterval(updateMapWithGPS, 5000);
+    });
+
+    // Setup joystick control
+    document.addEventListener('DOMContentLoaded', function() {
+        let joystickActive = false;
+        let joystick = document.getElementById('joystick');
+        let container = document.querySelector('.joystick-container');
+        let containerRect = container.getBoundingClientRect();
+        let joystickRadius = containerRect.width / 2;
+
+        // Helper function to calculate distance and angle
+        function calculatePosition(x, y) {
+            const dx = x - containerRect.left - joystickRadius;
+            const dy = y - containerRect.top - joystickRadius;
+
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const clampedDistance = Math.min(distance, joystickRadius);
+
+            const angle = -Math.atan2(dy, dx);
+
+            // Normalize dx, dy based on clamped distance
+            const normalizedDx = (dx / distance) * clampedDistance || 0;
+            const normalizedDy = (dy / distance) * clampedDistance || 0;
+
+            return {
+                power: (clampedDistance / joystickRadius).toFixed(2),
+                angle: angle.toFixed(2),
+                dx: normalizedDx,
+                dy: normalizedDy
+            };
+        }
+
+        // Event listeners for joystick movement
+        joystick.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            joystick.setPointerCapture(e.pointerId);
+            joystickActive = true;
+
+            const moveHandler = (event) => {
+                const { power, angle, dx, dy } = calculatePosition(event.clientX, event.clientY);
+
+                joystick.style.transform = `translate(${dx}px, ${dy}px)`;
+
+                const targeturl = '/_joystick';
+                const joystick_data = {
+                    POWER: power,
+                    ANGLE: angle,
+                };
+
+                sendJsonData(targeturl, joystick_data);
+            };
+
+            const upHandler = () => {
+                joystick.style.transform = 'translate(0, 0)';
+                joystickActive = false;
+
+                joystick.removeEventListener('pointermove', moveHandler);
+                joystick.removeEventListener('pointerup', upHandler);
+                joystick.removeEventListener('pointercancel', upHandler);
+
+                const targeturl = '/stopit';
+                const joystick_data = {
+                    POWER: 0,
+                    ANGLE: 0,
+                };
+
+                // Delay sending the data for 0.5 seconds
+                setTimeout(() => {
+                    sendJsonData(targeturl, joystick_data);
+                }, 500);
+            };
+
+            joystick.addEventListener('pointermove', moveHandler);
+            joystick.addEventListener('pointerup', upHandler);
+            joystick.addEventListener('pointercancel', upHandler);
+        });
+
+        // Handle window resize/orientation change
+        window.addEventListener('resize', () => {
+            containerRect = container.getBoundingClientRect();
+            joystickRadius = containerRect.width / 2;
+
+            // Reset joystick position
+            joystick.style.transform = 'translate(0, 0)';
+        });
+    });
+
+    // Toggle controls visibility
+    function toggleControls() {
+        const buttons = document.querySelector('.buttons');
+        buttons.classList.toggle('collapsed');
+    }
+
+    const mapper = document.querySelector('#map');
+    const video = document.querySelector('.videofeed');
+
+    var main_content = "map";
+
+    function swapcontent() {
+        if (main_content == "map") {
+            main_content = "video";
+            mapper.classList.toggle('collapsed');
+            video.classList.toggle('collapsed');
+            video.style.display = "block";
+            map.off('click', onMapClick);
+        }
+        else {
+            main_content = "map";
+            mapper.classList.toggle('collapsed');
+            video.classList.toggle('collapsed');
+            setTimeout(() => {
+                if (!video.classList.contains('collapsed')) {
+                    video.style.display = "none";
+                }
+            }, 300);
+            map.on('click', onMapClick);
+        }
+    }
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="toggle-buttons" onclick="toggleControls()">
+    Controls
+</div>
+
+<div class="waypoint-panel">
+    <h2>Waypoint Control</h2>
+    <input type="text" id="waypointName" placeholder="Enter waypoint name (max 5 chars)" maxlength="5">
+    <div class="button" onclick="submitWaypoint()">Submit Waypoints</div>
+</div>
+
+<img class="videofeed" src="{{ url_for('video_feed') }}">
+<div id="map">
+    <div class="map-controls">
+        <div class="button" id="undoBtn">Undo</div>
+        <div class="button" id="clearAllBtn">Clear All</div>
+    </div>
+</div>
+
+<div class="control-panels">
+    <div class="buttons">
+        <!-- Mode and Settings Controls -->
+        <div class="button-panel">
+            <div class="button-row">
+                <div class="button-group" style="flex: 1;">
+                    <h2>Mode</h2>
+                    <div class="button-row">
+                        <div class="button" onclick="buttonPress('Mode:RC')">RC</div>
+                        <div class="button" onclick="buttonPress('Mode:Shift')">Shift</div>
+                    </div>
+                </div>
+                
+                <div class="button-group" style="flex: 1;">
+                    <h2>View</h2>
+                    <div class="button" onclick="swapcontent()">Toggle View</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Target Selection -->
+        <div class="button-group">
+            <h2>Targets</h2>
+            <div class="button-row">
+                <div class="button" onclick="buttonPress('Targets:1')">1</div>
+                <div class="button" onclick="buttonPress('Targets:2')">2</div>
+                <div class="button" onclick="buttonPress('Targets:3')">3</div>
+                <div class="button" onclick="buttonPress('Targets:4')">4</div>
+            </div>
+            <div class="button-row" style="margin-top: 8px;">
+                <div class="button" onclick="buttonPress('Targets:5')">5</div>
+                <div class="button" onclick="buttonPress('Targets:6')">6</div>
+                <div class="button" onclick="buttonPress('Targets:7')">7</div>
+                <div class="button" onclick="buttonPress('Targets:8')">8</div>
+            </div>
+        </div>
+        
+        <!-- Direction Controls -->
+        <div class="button-group">
+            <h2>Navigation Controls</h2>
+            <div style="display: flex; justify-content: center;">
+                <div class="dpad">
+                    <div class="button up-btn" ontouchstart="directionPress('up')" ontouchend="directionPress('stop')">⬆️</div>
+                    <div class="button left-btn" ontouchstart="directionPress('left')" ontouchend="directionPress('stop')">⬅️</div>
+                    <div class="button center-btn" ontouchstart="enterPress(1)" ontouchend="enterPress(0)" onclick="enterPress(1)">Enter</div>
+                    <div class="button right-btn" ontouchstart="directionPress('right')" ontouchend="directionPress('stop')">➡️</div>
+                    <div class="button down-btn" ontouchstart="directionPress('down')" ontouchend="directionPress('stop')">⬇️</div>
+                </div>
+            </div>
+            
+            <!-- Twist Controls -->
+            <div class="twist-buttons">
+                <div class="button" ontouchstart="twistPress(-1)">Twist ←</div>
+                <div class="button" ontouchstart="twistPress(1)">Twist →</div>
+            </div>
+        </div>
+        
+        <!-- Record and Scenario Controls -->
+        <div class="button-panel">
+            <div class="button-row">
+                <div class="button-group" style="flex: 1;">
+                    <h2>Scenario</h2>
+                    <div class="button-row">
+                        <div class="button" onclick="buttonPress('Scenario:Start')">Start</div>
+                        <div class="button" onclick="buttonPress('Scenario:Stop')">Stop</div>
+                    </div>
+                </div>
+                
+                <div class="button-group" style="flex: 1;">
+                    <h2>Record</h2>
+                    <div class="button-row">
+                        <div class="button" onclick="buttonPress('Record:Start')">Start</div>
+                        <div class="button" onclick="buttonPress('Record:Stop')">Stop</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Torso Controls -->
+        <div class="button-group">
+            <h2>Torso</h2>
+            <div class="button-row">
+                <div class="button" onclick="buttonPress('up')">Alive</div>
+                <div class="button" onclick="buttonPress('down')">Down</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Joystick Container -->
+<div class="joystick-container">
+    <div class="joystick" id="joystick"></div>
+</div>
+{% endblock %}

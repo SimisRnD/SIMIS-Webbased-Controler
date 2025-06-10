@@ -1,0 +1,6 @@
+Flask
+Pillow
+qrcode
+pyserial
+pyproj
+opencv-python
