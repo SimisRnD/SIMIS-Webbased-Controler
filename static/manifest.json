@@ -1,0 +1,25 @@
+{
+    "name": "SIMIS Services",
+    "short_name": "SIMIS",
+    "description": "Robo Controler",
+    "start_url": "http://172.20.10.7:5000/controler",
+    "display": "standalone",
+    "background_color": "#333",
+    "theme_color": "#333",
+    "orientation": "portrait",
+    "icons": [
+      {
+        "src": "/static/simislogo_sq_192.png",
+        "sizes": "192x192",
+        "type": "image/png"
+      },
+      {
+        "src": "/static/simislogo_sq_512.png",
+        "sizes": "512x512",
+        "type": "image/png"
+      }
+    ],
+    "scope": "/",
+    "id": "/"
+  }
+  

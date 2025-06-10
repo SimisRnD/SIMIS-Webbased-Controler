@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Leaflet Map Orientation</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" />
+    <style>
+        #map {
+            width: 100%;
+            height: 100vh;
+            transform-origin: center center; /* Anchor rotation to the map's center */
+        }
+    </style>
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js"></script>
+</head>
+<body>
+    <div id="map"></div>
+    <script>
+        // Initialize the map
+        const map = L.map('map', { zoomControl: false }).setView([51.505, -0.09], 13);
+
+        // Add OpenStreetMap tiles
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Function to create a triangle at a specific position and direction
+        function createTriangle(lat, lng, heading, size = 0.001) {
+            const angleRad = (heading * Math.PI) / 180;
+            const dx = size * Math.cos(angleRad);
+            const dy = size * Math.sin(angleRad);
+
+            return [
+                [lat, lng], // tip of the triangle
+                [lat - size / 2, lng - dx / 2 + dy / 2], // bottom left
+                [lat - size / 2, lng + dx / 2 - dy / 2], // bottom right
+            ];
+        }
+
+        // Initial position and direction
+        let lat = 51.505;
+        let lng = -0.09;
+        let heading = 90; // in degrees
+
+        // Create the triangle polygon
+        let triangle = L.polygon(createTriangle(lat, lng, heading), { color: 'red' }).addTo(map);
+
+        // Function to rotate the map container
+        function rotateMap(angle) {
+            const mapElement = document.getElementById('map');
+            mapElement.style.transform = `rotate(${-angle}deg)`;
+        }
+
+        // Update the triangle dynamically and rotate the map
+        setInterval(() => {
+            heading = (heading + 10) % 360; // Change direction
+            lat += 0.0001; // Move slightly north
+            lng += 0.0001; // Move slightly east
+
+            // Update triangle position
+            triangle.setLatLngs(createTriangle(lat, lng, heading));
+
+            // Center map on the triangle
+            map.setView([lat, lng]);
+
+            // Rotate the map to match the heading
+            rotateMap(heading);
+        }, 1000);
+    </script>
+</body>
+</html>

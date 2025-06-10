@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Diagnostics</title>
+    <script>
+        async function fetchDiagnostics() {
+            const response = await fetch('/diagnostics');
+            const data = await response.json();
+            
+            document.getElementById("system-data").innerHTML = `
+                <strong>Serial:</strong> ${data.System.serial} <br>
+                <strong>Client ID:</strong> ${data.System.clientId} <br>
+                <strong>State:</strong> ${data.System.state} <br>
+                <strong>Errors:</strong> ${data.System.errorbits.join(", ")} <br>
+                <strong>Path Name:</strong> ${data.System.pathName} <br>
+            `;
+
+            document.getElementById("battery-data").innerHTML = `
+                <strong>Voltage:</strong> ${data.Battery.voltage.join("V, ")}V <br>
+                <strong>Capacity:</strong> ${data.Battery.capacity.join("%, ")}% <br>
+                <strong>Current:</strong> ${data.Battery.current.join("A, ")}A <br>
+            `;
+
+            document.getElementById("gps-data").innerHTML = `
+                <strong>UTM X:</strong> ${data.GPS.utmX} <br>
+                <strong>UTM Y:</strong> ${data.GPS.utmY} <br>
+                <strong>Satellites:</strong> ${data.GPS.numSat} <br>
+                <strong>GPS Fix:</strong> ${data.GPS.gpsFix ? "Yes" : "No"} <br>
+                <strong>Speed:</strong> ${data.GPS.speed} m/s <br>
+            `;
+
+            document.getElementById("usb-data").innerHTML = `
+                <strong>USB Ports:</strong><br>
+                ${data["USB Ports"].map(port => `${port[0]} - ${port[1]}`).join("<br>")}
+            `;
+        }
+
+        window.onload = fetchDiagnostics;
+    </script>
+</head>
+<body>
+    <h1>Robot Diagnostics</h1>
+    
+    <h2>System</h2>
+    <p id="system-data">Loading...</p>
+
+    <h2>Battery</h2>
+    <p id="battery-data">Loading...</p>
+
+    <h2>GPS</h2>
+    <p id="gps-data">Loading...</p>
+
+    <h2>USB Ports</h2>
+    <p id="usb-data">Loading...</p>
+</body>
+</html>

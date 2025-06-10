@@ -1,0 +1,683 @@
+{% extends "index.html" %}
+
+{% block heading %} 
+<title>Controler</title>
+<script src="static/map.js"></script>
+<link rel="stylesheet" href="static/map.css">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<style>
+    .content {
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            /* background-color: #f0f0f0; */
+        }
+
+        .joystick-container {
+            -webkit-user-select: none;     /* Prevent text selection */
+    -webkit-touch-callout: none;   /* Prevent long press menu */
+    -webkit-tap-highlight-color: transparent;  /* Remove gray highlight */
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 150px;
+            height: 150px;
+            background-color: #dddddd6e;
+            border-radius: 50%;
+            border: 2px solid #ccc;
+            overflow: hidden;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .joystick {
+            -webkit-user-select: none;     /* Prevent text selection */
+    -webkit-touch-callout: none;   /* Prevent long press menu */
+    -webkit-tap-highlight-color: transparent;  /* Remove gray highlight */
+            width: 40px;
+            height: 40px;
+            background-color: #33333362;
+            border-radius: 50%;
+            position: absolute;
+            touch-action: none;
+        }
+
+        .output {
+            position: fixed;
+            bottom: 180px;
+            right: 20px;
+            /* background-color: #fff; */
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+        }
+        
+
+
+
+.buttons-grid1, .buttons-grid2, .buttons-grid3, .buttons-grid4 {
+    display: grid;
+    gap: 10px;
+}
+
+.buttons-grid1 {
+    grid-template-columns: 1fr;
+
+}
+
+.buttons-grid2 {
+    grid-template-columns: repeat(2, 1fr);
+}
+
+.buttons-grid3 {
+    grid-template-columns: repeat(3, 1fr);
+}
+
+.buttons-grid4 {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.button {
+    width: 40px; /* Adjust size for better visuals */
+    height: 40px;
+    background-color: #444;
+    border-radius: 10px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    /* font-weight: bold; */
+    font-size: small;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.button:hover {
+    background-color: #555;
+}
+
+.button-group {
+    text-align: center; 
+    padding: 5px 5px;
+    border: 2px solid rgb(255, 248, 248); /* Thickness and color of the border */
+    border-radius: 15px; /* Rounds the corners */
+    margin: 5px;
+}
+
+.buttons{
+    background-color: rgba(75, 73, 73, 0.493);
+    border-radius: 10px;
+    z-index: 999;
+}
+.buttons.collapsed {
+            display: none; /* Use this to hide elements completely */
+            /* Alternatively, you can use: visibility: hidden; to hide but retain space */
+            
+        }
+
+        .videofeed {
+    position: absolute; /* Position it within the .HUD container */
+    top: 10px; /* Adjust as needed */
+    right: 10px; /* Adjust as needed */
+    border-radius: 10px;
+    width: 180px; /* Adjust initial size */
+    height: 120px; /* Adjust initial size */
+    opacity: 0.50;
+    border: 2px solid #000; /* Optional: border to stand out */
+    resize: both; /* Allows resizing from the bottom-right corner */
+    overflow: hide; /* Prevents content from overflowing */
+    z-index: 900;
+    display: none;
+}
+.videofeed.collapsed {
+    position: fixed; /* Position it within the .HUD container */
+    width: 80%;
+            height:400px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            align-self: center;
+            top:auto;
+            right: auto;
+            opacity:1.0;
+            z-index: 100;
+}
+
+#map {
+            position: fixed;
+            width: 80%;
+            height: 400px;
+            border: 2px solid #333;
+            border-radius: 10px;
+            z-index: 100;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 600px) {
+            
+            .sidebar {
+                display: none; 
+                
+            }
+
+            .content {
+        position: absolute; /* Use absolute positioning */
+        top: 70%; /* Move the content to the center vertically */
+        left: 0%; /* Move the content to the center horizontally */
+        transform: rotate(90deg); /* Rotate the content 90 degrees */
+        transform-origin: center center; /* Set rotation origin to the center */
+        width: 100vh; /* Adjust the width after rotation */
+        height: 100vw; /* Adjust the height after rotation */
+        overflow: auto; /* Allow scrolling if the content overflows */
+        margin-top: -50vh; /* Adjust for the new layout */
+        margin-left: -50vw; /* Adjust for the new layout */
+    }
+        
+        }
+
+
+#map.collapsed {
+    position: absolute; /* Position it within the .HUD container */
+    top: 10px; /* Adjust as needed */
+    right: 10px; /* Adjust as needed */
+    border-radius: 10px;
+    width: 180px; /* Adjust initial size */
+    height: 120px; /* Adjust initial size */
+    opacity: 0.50;
+    border: 2px solid #000; /* Optional: border to stand out */
+    resize: both; /* Allows resizing from the bottom-right corner */
+    overflow: hide; /* Prevents content from overflowing */
+    z-index: 900;
+}
+</style>
+<script>
+    // Button Press Event
+    function buttonPress(buttonName) {
+            const buttonurl = '/_buttons';
+            let buttondata = {BUTTON:buttonName}
+            sendJsonData(buttonurl,buttondata);
+        }
+
+        async function getGPSInfo() {
+    try {
+        const response = await fetch('/_gps/info');  // Send GET request to Flask API
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        
+        const data = await response.json();  // Parse JSON response
+        console.log("GPS Data:", data);  // Log received data
+        
+        return data;  // Returns { lon: ..., lat: ... }
+    } catch (error) {
+        console.error("Error fetching GPS info:", error);
+        return null;
+    }
+}
+</script>
+<script>
+    var map;
+    // Arrays to store markers and polylines
+            var clickedPoints = [];
+            var markers = [];
+            var polylines = [];
+    function onMapClick(e) {
+    var lat = e.latlng.lat;
+    var lng = e.latlng.lng;
+    let waypoint_url = '/_gps/add_way_point'
+    var watpoint_data = {TAR:'ScenTrents',
+        LAT:lat,
+        LON:lng}
+    sendJsonData(waypoint_url,watpoint_data);
+
+    // Add a marker at the clicked location
+    var marker = L.circleMarker([lat, lng], {
+        color: 'blue',
+        radius: 5
+    }).addTo(map);
+    markers.push(marker);
+
+    // Save the clicked point for drawing a line
+    clickedPoints.push([lat, lng]);
+
+    // If there are at least two points, draw a line
+    if (clickedPoints.length > 1) {
+        var polyline = L.polyline(clickedPoints, { color: 'blue' }).addTo(map);
+        polylines.push(polyline);
+    }
+}
+
+     document.addEventListener('DOMContentLoaded', function() {
+            
+            map = L.map('map').setView([36.7282, -76.5836], 20);
+
+            // // Add a tile layer (using OpenStreetMap)
+            // L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            //     attribution: '&copy; SIMIS Inc.'
+            // }).addTo(map);
+
+            // Add a tile layer (using OpenStreetMap)
+            L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: '&copy; SIMIS Inc.'
+            }).addTo(map);
+
+            // Example usage
+
+
+            
+
+            // Define the event handler as a named function
+
+
+// Attach the click event listener
+map.on('click', onMapClick);
+
+            // Undo functionality
+            document.getElementById('undoBtn').addEventListener('click', function() {
+                // Remove last point and line if they exist
+                if (markers.length > 0) {
+                    var lastMarker = markers.pop();
+                    map.removeLayer(lastMarker);
+                }
+                if (polylines.length > 0) {
+                    var lastPolyline = polylines.pop();
+                    map.removeLayer(lastPolyline);
+                }
+
+                // Also remove the last clicked point for the line
+                if (clickedPoints.length > 0) {
+                    clickedPoints.pop();
+                }
+            });
+
+            // Clear All functionality
+            document.getElementById('clearAllBtn').addEventListener('click', function() {
+                // Remove all feature layers (markers, polylines)
+                markers.forEach(function(marker) {
+                    map.removeLayer(marker);
+                });
+                polylines.forEach(function(polyline) {
+                    map.removeLayer(polyline);
+                });
+
+                // Clear the arrays
+                markers = [];
+                polylines = [];
+                clickedPoints = [];
+            });
+        });
+
+        
+        document.addEventListener("keydown", function(event) {
+            let targeturl = '/_joystick_b';
+            let joystick_data = {
+                    POWER: 1.0,
+                    ANGLE:0,
+                };
+            
+        
+
+
+        
+    switch (event.key) {
+        case "ArrowUp":
+            joystick_data.ANGLE = Math.PI/2.0
+            break;
+        case "ArrowDown":
+            joystick_data.ANGLE = 3.0*Math.PI/2.0
+            break;
+        case "ArrowLeft":
+        joystick_data.ANGLE = Math.PI
+            break;
+        case "ArrowRight":
+            joystick_data.ANGLE = 0
+            break;
+        case "Enter":
+            targeturl='/select';
+            joystick_data = {
+                    status:1,
+                };
+                break;
+        case "+":
+            targeturl='/twist';
+            joystick_data = {
+                    dir:1,
+                };
+                break;
+
+        case "-":
+            targeturl='/twist';
+            joystick_data = {
+                    dir:-1,
+                };
+            // Add your action for the Enter key here
+            break;
+        
+        case "*":
+            targeturl='/_gps/make_scen';
+            joystick_data = {
+                    TAR:'ScenTrents',
+                };
+            // Add your action for the Enter key here
+            break;
+    }
+    sendJsonData(targeturl, joystick_data);
+
+
+});
+
+document.addEventListener("keyup", function() {
+    const joystick_zero = {
+                    POWER: 0.0,
+                    ANGLE:0,
+    };
+    const targeturl = '/_joystick';
+    setTimeout(() => sendJsonData(targeturl, joystick_zero), 600);
+    sendJsonData('/select',{status:0});
+});
+let locationMarker = null;  // Store the marker reference
+async function updateMapWithGPS() {
+    try {
+        const data = await getGPSInfo();  // Fetch GPS data
+        if (data) {
+            const lat = data.lat;
+            const lon = data.lon;
+            console.log(data)
+
+            // Move the map to the new location
+            map.setView([lat, lon]);
+
+            // If marker doesn't exist, create one; otherwise, update its position
+            if (!locationMarker) {
+                locationMarker = L.circleMarker([lat, lon], {
+                    color: 'red',   // Change color to distinguish from other markers
+                    radius: 8       // Size of the dot
+                }).addTo(map);
+            } else {
+                locationMarker.setLatLng([lat, lon]);  // Update position
+            }
+        }
+    } catch (error) {
+        console.error("Error updating map with GPS:", error);
+    }
+}
+// Call the function when the page loads
+document.addEventListener('DOMContentLoaded', function () {
+    updateMapWithGPS();
+
+    // Optionally, update the map periodically (e.g., every 5 seconds)
+    setInterval(updateMapWithGPS, 5000);
+});
+</script>
+{% endblock %}
+
+{% block content %}
+<div class="toggle-Buttons" style="z-index: 999;background-color: rgba(66, 65, 65, 0.507); position: fixed; left: 75px; bottom: 30px; border-radius: 20px; padding: 0px 6px; cursor: pointer;" onclick="performTripleClickAction()">
+<h3>Toggle Buttons</h3>
+</div>
+<img class="videofeed" src="{{ url_for('video_feed') }}" >
+<div class ="map" id="map"></div>
+<div class="buttons" style="z-index: 999;">
+    <div style="display: flex;">
+        <div class="button-group">
+            <h2>Mode</h2>
+            <div class="buttons-grid1">
+                <div class="button" onclick="buttonPress('Mode:RC')">RC</div>
+                <div class="button" onclick="buttonPress('Mode:Shift')">Shift</div>
+            </div>
+        </div>
+        <div class="button-group">
+            <h2>Targets</h2>
+            <div class="buttons-grid4">
+                <div class="button" onclick="buttonPress('Targets:1')">1</div>
+                <div class="button" onclick="buttonPress('Targets:2')">2</div>
+                <div class="button" onclick="buttonPress('Targets:3')">3</div>
+                <div class="button" onclick="buttonPress('Targets:4')">4</div>
+                <div class="button" onclick="buttonPress('Targets:5')">5</div>
+                <div class="button" onclick="buttonPress('Targets:6')">6</div>
+                <div class="button" onclick="buttonPress('Targets:7')">7</div>
+                <div class="button" onclick="buttonPress('Targets:8')">8</div>
+            </div>
+        </div>
+        <div class="button-group">
+            <h2>Torso</h2>
+            <div class="buttons-grid1">
+                <div class="button" onclick="buttonPress('up')">Alive</div>
+                <div class="button" onclick="buttonPress('down')">Down</div>
+            </div>
+        </div>
+        
+    </div>  
+
+    <div style="display: flex;">
+        <div class="button-group">
+            <h2>Scenario</h2>
+            <div class="buttons-grid2">
+                <div class="button" onclick="buttonPress('Scenario:Start')">Start</div>
+                <div class="button" onclick="buttonPress('Scenario:Stop')">Stop</div>
+            </div>
+        </div>
+        <div class="button-group">
+            <h2>Record</h2>
+            <div class="buttons-grid2">
+                <div class="button" onclick="buttonPress('Record:Start')">Start</div>
+                <div class="button" onclick="buttonPress('Record:Stop')">Stop</div>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <h2>View</h2>
+            <div class="buttons-grid1">
+                <div class="button" onclick="swapcontent()">Toggle</div>
+            </div>
+        </div>
+    </div>  
+</div>
+
+<!-- Joystick Container -->
+<div class="joystick-container">
+    <div class="joystick" id="joystick"></div>
+</div>
+
+<!-- Output Display -->
+<!-- <div class="output" id="output">
+    <p>Power: <span id="power">0.0</span></p>
+    <p>Angle: <span id="angle">0.0</span> radians</p>
+</div> -->
+
+<script>
+let joystickActive = false;
+// setInterval(() => {
+//     if (!joystickActive) {
+//         const targeturl = '/_joystick';
+//         const joystick_data = {
+//             POWER: 0,
+//             ANGLE: 0,
+//         };
+//         sendJsonData(targeturl, joystick_data);
+//     }
+// }, 200);
+let joystick = document.getElementById('joystick');
+let container = document.querySelector('.joystick-container');
+// const outputPower = document.getElementById('power');
+// const outputAngle = document.getElementById('angle');
+
+let containerRect = container.getBoundingClientRect();
+let joystickRadius = containerRect.width / 2;
+
+// Helper function to calculate distance and angle
+function calculatePosition(x, y) {
+    const dx = x - containerRect.left - joystickRadius;
+    const dy = y - containerRect.top - joystickRadius;
+
+    const distance = Math.sqrt(dx * dx + dy * dy);
+    const clampedDistance = Math.min(distance, joystickRadius);
+
+    const angle = -Math.atan2(dy, dx);
+
+    // Normalize dx, dy based on clamped distance
+    const normalizedDx = (dx / distance) * clampedDistance || 0;
+    const normalizedDy = (dy / distance) * clampedDistance || 0;
+
+    return {
+        power: (clampedDistance / joystickRadius).toFixed(2),
+        angle: angle.toFixed(2),
+        dx: normalizedDx,
+        dy: normalizedDy
+    };
+
+    // return {
+    //     power: 0.0,
+    //     angle: 0.0,
+    //     dx: 0.0,
+    //     dy: 0.0
+    // };
+}
+
+// Event listeners for joystick movement
+joystick.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    joystick.setPointerCapture(e.pointerId);
+    joystickActive = true;
+
+    const moveHandler = (event) => {
+        const { power, angle, dx, dy } = calculatePosition(event.clientX, event.clientY);
+
+        joystick.style.transform = `translate(${dx}px, ${dy}px)`;
+        // outputPower.textContent = power;
+        // outputAngle.textContent = angle;
+
+        const targeturl = '/_joystick';
+        const joystick_data = {
+            POWER: power,
+            ANGLE: angle,
+        };
+        // const joystick_data = {
+        //     POWER: 0.0,
+        //     ANGLE: 0.0,
+        // };
+
+        sendJsonData(targeturl, joystick_data);
+    };
+
+    const upHandler = () => {
+        joystick.style.transform = 'translate(0, 0)';
+        joystickActive = false;
+        // outputPower.textContent = '0.0';
+        // outputAngle.textContent = '0.0';
+
+        joystick.removeEventListener('pointermove', moveHandler);
+        joystick.removeEventListener('pointerup', upHandler);
+        joystick.removeEventListener('pointercancel', upHandler);
+
+        const targeturl = '/stopit';
+        const joystick_data = {
+            POWER: 0,
+            ANGLE: 0,
+        };
+
+        // Delay sending the data for 0.5 seconds
+        setTimeout(() => {
+        sendJsonData(targeturl, joystick_data);
+    }, 500);
+        // sendJsonData(targeturl, joystick_data);
+  
+    };
+
+    joystick.addEventListener('pointermove', moveHandler);
+    joystick.addEventListener('pointerup', upHandler);
+    joystick.addEventListener('pointercancel', upHandler);
+});
+
+// Handle window resize/orientation change
+window.addEventListener('resize', () => {
+    containerRect = container.getBoundingClientRect();
+    joystickRadius = containerRect.width / 2;
+
+    // Reset joystick position
+    joystick.style.transform = 'translate(0, 0)';
+    // outputPower.textContent = '0.0';
+    // outputAngle.textContent = '0.0';
+});
+
+</script>
+<script>
+    toggleSidebar();
+    // const fullscreenBtn = document.getElementById('fullscreen');
+    // fullscreenBtn.addEventListener('click', () => {
+            
+    //         // Check if Fullscreen API is available
+    //         if (content.requestFullscreen) {
+    //             content.requestFullscreen();
+    //         } else if (content.mozRequestFullScreen) { // For Firefox
+    //             content.mozRequestFullScreen();
+    //         } else if (content.webkitRequestFullscreen) { // For Safari
+    //             content.webkitRequestFullscreen();
+    //         } else if (content.msRequestFullscreen) { // For IE/Edge
+    //             content.msRequestFullscreen();
+    //         } else {
+    //             alert('Fullscreen mode is not supported by your browser.');
+    //         }
+    //     });
+
+        let clickCount = 0;
+        let clickTimer;
+
+        document.addEventListener("click", () => {
+            clickCount++;
+            
+            if (clickCount === 1) {
+                // Start the timer on the first click
+                clickTimer = setTimeout(() => {
+                    // Reset click count after 500ms (adjust as needed)
+                    clickCount = 0;
+                }, 500);
+            }
+
+            if (clickCount === 3) {
+                clearTimeout(clickTimer); // Clear the timer
+                clickCount = 0; // Reset click count
+                performTripleClickAction(); // Perform the desired action
+            }
+        });
+
+        function performTripleClickAction() {
+            
+            const buttons = document.querySelector('.buttons');
+            buttons.classList.toggle('collapsed');
+            
+        }
+
+        const mapper = document.querySelector('.map');
+        const video = document.querySelector('.videofeed');
+
+        var main_content = "map"
+
+        function swapcontent(){
+
+            
+            if(main_content == "map"){
+
+                main_content = "video";
+                mapper.classList.toggle('collapsed');
+                video.classList.toggle('collapsed');
+                map.off('click', onMapClick);
+                
+            }
+            else{
+                main_content = "map";
+                mapper.classList.toggle('collapsed');
+                video.classList.toggle('collapsed');
+                map.on('click', onMapClick);
+
+                
+            }
+        }
+        performTripleClickAction();
+</script>
+{% endblock %}

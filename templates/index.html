@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
+    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Base Styles */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Roboto', sans-serif;
+            -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+        }
+
+        body {
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            width: 100vw;
+            background-color: #121212; /* Darker background */
+            color: #f5f5f5;
+            overflow: hidden;
+            position: fixed; /* Prevent bouncing on mobile */
+            touch-action: manipulation; /* Improve touch responsiveness */
+        }
+
+        /* Header with Menu Button */
+        .header {
+            height: 56px;
+            width: 100%;
+            background-color: #1e1e1e;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 1000;
+            position: relative;
+        }
+
+        .app-title {
+            font-size: 18px;
+            font-weight: 500;
+            color: white;
+        }
+
+        /* Menu Button */
+        .menu-button {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+        }
+
+        .menu-button:active {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Modal Menu */
+        .menu-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            z-index: 1001;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+
+        .menu-overlay.open {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .menu-modal {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background-color: #1e1e1e;
+            border-top-left-radius: 16px;
+            border-top-right-radius: 16px;
+            transform: translateY(100%);
+            transition: transform 0.3s ease;
+            z-index: 1002;
+            box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.3);
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .menu-modal.open {
+            transform: translateY(0);
+        }
+
+        .menu-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 20px;
+            border-bottom: 1px solid #333;
+        }
+
+        .menu-title {
+            font-size: 18px;
+            font-weight: 500;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            color: #ddd;
+            font-size: 24px;
+            cursor: pointer;
+        }
+
+        .menu-items {
+            padding: 10px 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            text-decoration: none;
+            color: #ddd;
+        }
+
+        .menu-item:active {
+            background-color: #2c2c2c;
+        }
+
+        .menu-item.active {
+            background-color: #2979ff;
+            color: white;
+        }
+
+        .menu-item .icon {
+            margin-right: 15px;
+            font-size: 20px;
+            width: 24px;
+            text-align: center;
+        }
+
+        /* Main Content */
+        .content {
+            flex-grow: 1;
+            width: 100%;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        /* Safe area insets for notched phones */
+        @supports (padding: max(0px)) {
+            .header {
+                padding-top: max(0px, env(safe-area-inset-top));
+                padding-left: max(15px, env(safe-area-inset-left));
+                padding-right: max(15px, env(safe-area-inset-right));
+                height: calc(56px + env(safe-area-inset-top));
+            }
+            
+            .content {
+                height: calc(100vh - 56px - env(safe-area-inset-top));
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+            
+            .menu-modal {
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+        }
+    </style>
+    <script>
+        function toggleMenu() {
+            const menuOverlay = document.querySelector('.menu-overlay');
+            const menuModal = document.querySelector('.menu-modal');
+            
+            if (menuOverlay.classList.contains('open')) {
+                menuOverlay.classList.remove('open');
+                menuModal.classList.remove('open');
+            } else {
+                menuOverlay.classList.add('open');
+                menuModal.classList.add('open');
+            }
+        }
+
+        function sendJsonData(url, data) {
+            // Ensure the data is JSON stringified
+            const jsonData = JSON.stringify(data);
+
+            // Use the fetch API to send a POST request
+            fetch(url, {
+                method: 'POST', // HTTP method
+                headers: {
+                    'Content-Type': 'application/json', // Specify the content type
+                },
+                body: jsonData, // Attach the JSON data
+            })
+            .then(response => {
+                // Check if the response is OK
+                if (!response.ok) {
+                    throw new Error(`HTTP error! Status: ${response.status}`);
+                }
+                return response.json(); // Parse the response as JSON
+            })
+            .then(data => {
+                console.log('Response:', data); // Log the server's response
+            })
+            .catch(error => {
+                console.error('Error:', error); // Handle errors
+            });
+        }
+
+        // Handle page visibility changes to prevent issues when app goes to background
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'hidden') {
+                // Stop any ongoing operations when app goes to background
+                console.log('App went to background');
+                
+                // Optional: Send a stop command to the server
+                try {
+                    sendJsonData('/stopit', { POWER: 0, ANGLE: 0 });
+                } catch (e) {
+                    console.error('Failed to send stop command:', e);
+                }
+            }
+        });
+        
+        // Lock orientation to landscape for controller view on mobile
+        function checkOrientation() {
+            const path = window.location.pathname;
+            if (path.includes('controler') && window.innerWidth < 769) {
+                if (window.screen && window.screen.orientation) {
+                    try {
+                        window.screen.orientation.lock('landscape');
+                    } catch (e) {
+                        console.log('Orientation lock not supported');
+                    }
+                }
+            }
+        }
+    </script>
+    {% block heading %}{% endblock %}
+</head>
+<body>
+    <!-- Header with Menu Button -->
+    <div class="header">
+        <div class="app-title">SIMIS Control</div>
+        <button class="menu-button" onclick="toggleMenu()">☰</button>
+    </div>
+
+    <!-- Menu Overlay -->
+    <div class="menu-overlay" onclick="toggleMenu()"></div>
+
+    <!-- Menu Modal -->
+    <div class="menu-modal">
+        <div class="menu-header">
+            <div class="menu-title">Menu</div>
+            <button class="close-button" onclick="toggleMenu()">×</button>
+        </div>
+        <div class="menu-items">
+            <a href="/" class="menu-item {% if request.path == '/' %}active{% endif %}">
+                <span class="icon">🏠</span>
+                <span>Home</span>
+            </a>
+            <a href="/controler" class="menu-item {% if request.path == '/controler' %}active{% endif %}">
+                <span class="icon">🎮</span>
+                <span>Controller</span>
+            </a>
+            <a href="#" class="menu-item">
+                <span class="icon">📧</span>
+                <span>Contact</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content" id="main-content">
+        {% block content %}{% endblock %}
+    </div>
+    <script>
+        // Check current page and highlight active nav
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            const menuItems = document.querySelectorAll('.menu-item');
+            
+            menuItems.forEach(item => {
+                const href = item.getAttribute('href');
+                if (href === currentPath) {
+                    item.classList.add('active');
+                }
+            });
+            
+            // Check if we should attempt to lock orientation
+            checkOrientation();
+        });
+        
+        // Handle resize events
+        window.addEventListener('resize', function() {
+            checkOrientation();
+        });
+        
+        // Prevent pull-to-refresh on mobile
+        document.body.addEventListener('touchmove', function(e) {
+            if (e.target === document.body) {
+                e.preventDefault();
+            }
+        }, { passive: false });
+    </script>
+</body>
+</html>
