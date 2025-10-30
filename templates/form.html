@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>USMC Rifle Range Data Form</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}" />
+</head>
+<body>
+    <div class="container">
+        <h2>Day 1 KD Firing - 500 Yard Slow Fire (Prone)</h2>
+        <form method="POST">
+            <!-- BEFORE FIRING Section -->
+            <fieldset>
+                <legend>Before Firing</legend>
+                <div class="input-group">
+                    <label>Front Elevation:</label>
+                    <input type="text" name="front_elev" />
+                    <label>Rear Elevation:</label>
+                    <input type="text" name="rear_elev" />
+                </div>
+                <div class="input-group">
+                    <label>Wind:</label>
+                    <input type="text" name="wind" />
+                </div>
+            </fieldset>
+
+            <!-- DURING FIRING Section -->
+            <fieldset>
+                <legend>During Firing</legend>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Call</th>
+                            <th>Elevation</th>
+                            <th>Wind</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for i in range(1, 11) %}
+                        <tr>
+                            <td>{{ i }}</td>
+                            <td><input type="text" name="elevation_{{ i }}" /></td>
+                            <td><input type="text" name="wind_{{ i }}" /></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </fieldset>
+
+            <!-- AFTER FIRING Section -->
+            <fieldset>
+                <legend>After Firing</legend>
+                <div class="input-group">
+                    <label>Zero:</label>
+                    <input type="text" name="zero" />
+                    <label>Wind:</label>
+                    <input type="text" name="wind_after" />
+                </div>
+            </fieldset>
+
+            <div class="form-actions">
+                <button type="submit">Submit</button>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

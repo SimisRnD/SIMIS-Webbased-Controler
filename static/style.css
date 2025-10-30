@@ -1,0 +1,98 @@
+/* General Styling */
+body {
+    background-color: #121212;
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    padding: 20px;
+}
+
+.container {
+    max-width: 800px;
+    margin: 0 auto;
+    background-color: #1e1e1e;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+}
+
+h2 {
+    text-align: center;
+    color: #bb86fc;
+}
+
+fieldset {
+    border: 1px solid #bb86fc;
+    padding: 15px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+}
+
+legend {
+    color: #bb86fc;
+    padding: 0 10px;
+}
+
+/* Input Group Styling */
+.input-group {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.input-group label {
+    flex-basis: 40%;
+}
+
+.input-group input {
+    flex-basis: 55%;
+    background-color: #333;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 5px;
+    border-radius: 4px;
+}
+
+/* Table Styling */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+}
+
+th, td {
+    padding: 8px;
+    border: 1px solid #555;
+    text-align: center;
+}
+
+th {
+    background-color: #333;
+}
+
+input[type="text"] {
+    background-color: #222;
+    color: #fff;
+    border: 1px solid #555;
+    padding: 5px;
+}
+
+/* Button Styling */
+.form-actions {
+    text-align: center;
+    margin-top: 20px;
+}
+
+button {
+    background-color: #bb86fc;
+    color: #000;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background 0.3s ease;
+}
+
+button:hover {
+    background-color: #3700b3;
+}

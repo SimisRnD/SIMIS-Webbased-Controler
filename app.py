@@ -1,297 +1,97 @@
-from flask import Flask, render_template, jsonify, request, send_file, Response, send_from_directory, redirect, url_for
-from PIL import Image, ImageDraw
-from genfeed import generate_frames
-# import simplified_radio
-from vectors_ import Vector
+import serial
 import time
-from functools import wraps
-from flask import g
-from HTT import Htt
-from gpstransformer import latLong2UTM, UTM2LonLat
-import gen_qr
 
-HTT = Htt()
-PAUSE = False
-scens = {}
-last_time = time.time()
+class Connex4490:
+    def __init__(self, port, baudrate=115200, timeout=0.5):
+        self.ser = serial.Serial(port, baudrate=baudrate, timeout=timeout)
+        if not self.ser.is_open:
+            self.ser.open()
+        print(f"Connected to {port} at {baudrate} baud.")
 
-#Base requirment
-def rate_limit(f):
+    def send_command(self, command_bytes, wait_response=True):
+        """Send a command to the Connex4490 and optionally read response."""
+        self.ser.write(bytearray(command_bytes))
+        print(f"Sent: {[hex(b) for b in command_bytes]}")
+        if wait_response:
+            time.sleep(0.05)  # small delay to allow response
+            response = self.ser.read_all()
+            print(f"Received: {[hex(b) for b in response]}")
+            return response
+        return None
+
+    # Basic AT/CC commands
+    def enter_command_mode(self):
+        return self.send_command([0x41,0x54,0x2B,0x2B,0x2B,0x0D])
+
+    def exit_command_mode(self):
+        return self.send_command([0xCC,0x41,0x54,0x4F,0x0D])
+
+    def status_request(self):
+        return self.send_command([0xCC,0x00,0x00])
+
+    def change_channel(self, new_channel):
+        return self.send_command([0xCC,0x02,new_channel])
+
+    def change_server_client(self, mode):
+        """mode: 0x00 = Server, 0x03 = Client"""
+        return self.send_command([0xCC,0x03,mode])
+
+    def change_sync_channel(self, new_sync_channel):
+        return self.send_command([0xCC,0x05,new_sync_channel])
+
+    def sleep_walk_power_down(self):
+        return self.send_command([0xCC,0x06])
+
+    def sleep_walk_wake_up(self):
+        return self.send_command([0xCC,0x07])
+
+    def broadcast_packet(self, broadcast_type):
+        """broadcast_type: 0x00 = Addressed, 0x01 = Broadcast"""
+        return self.send_command([0xCC,0x08,broadcast_type])
+
+    def close(self):
+        self.ser.close()
+        print("Serial connection closed.")
     
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        global last_time
-        current_time = time.time()
-        print(current_time-last_time)
-        if abs(current_time-last_time) < 0.25:
-            # print('Too Fast')
-            return {'301':'too fast'}, 301
-        else:
-            last_time = current_time
-        return f(*args, **kwargs)
+    def listen(self):
+        return self.ser.read_all()
+
+
+if __name__ == "__main__":
+    # Replace 'COM3' with your serial port (Windows) or '/dev/ttyUSB0' (Linux)
+
+    
+    radio = Connex4490(port="COM9")
+
+    try:
+        radio.enter_command_mode()
+        time.sleep(0.1)
+
+        # Example commands
+        radio.status_request()
+        radio.change_channel(26)
+        # radio.broadcast_packet(0x01)  # send broadcast
+        # radio.sleep_walk_power_down()
+
+        radio.exit_command_mode()
+
+        while True:
+            time.sleep(0.5)
+            reps = radio.listen()
+            if reps:
+                try:
+                    mac1, mac2, mac3 = 0xFF,0xFF,0xFF
+                    reply = bytes([0x81,len([0x19, 0x01, 0X0C, 0x00, 0x01]),0]+[mac1,mac2,mac3]+[0x19, 0x01, 0X0C, 0x00, 0x01])
+                    print("Recieved:",reps)
+                    print('Replying with:',reply)
+                    radio.ser.write(reply)
+                    time.sleep(0.2)
+                    print(radio.listen())
+                except ValueError:
+                    pass
+               
         
-    return decorated_function
 
-
-WAYPOINTS = {}
-for i in range(1,9):
-    WAYPOINTS[i] = []
-
-
-def intify(x):
-    print('BEFORE INTIFY',x)
-    return int(round(float(x),0))
-
-app = Flask(__name__)
-
-# Distinct Pages
-@app.route('/')
-def index():
-    return render_template('dashboard.html')
-
-
-# Distinct Pages
-@app.route('/controler')                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
-def controler():
-    return render_template('controlerv2.html')
-
-
-# Distinct Pages
-@app.route('/connect')                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
-def connect():
-    return render_template('connect.html')
-
-
-# Route to download the ZIP file
-@app.route('/_download')
-def _download():
-    return send_from_directory(
-        directory='static',  # Directory where the file is stored
-        path='controler.zip',   # File name
-        as_attachment=True   # Forces download
-    )
-
-
-# Route for the homepage
-@app.route('/download')
-def download():
-    return render_template('download.html')
-
-# Distinct Pages
-@app.route('/statistics')                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               
-def statistics():
-    return render_template('statistics.html')
-
-# Joystick backend
-
-@app.route('/_joystick', methods=['POST'])
-@rate_limit
-def joystick():
-    data = request.get_json()
-    power = data.get('POWER', '0')
-    angle = data.get('ANGLE', '0')
-    print(f'Power: {power}\nAngle: {angle}')
-    
-
-    joystick_v = 100*Vector(mag=float(power),theta=float(angle),deg=False)
-    print(joystick_v)
-    try:
-        jx = -1*intify(joystick_v[0])
-        jy = intify(joystick_v[1])
-        jz = 0
-        print('jx', float(jx),'jy ',float(jy))
-        HTT.cmd_drive(jx,jy,jz,1204)
-        # simplified_radio.sendJoyStickCMD(jx,jy,0)
-    except Exception as e:
-        print(e)
-    return {'Bet':'Got it'}, 200
-
-@app.route('/stopit', methods=['POST','GET'])
-def stopit():
-    HTT.cmd_stop()
-    return {'Bet':'Got it'}, 200
-
-@app.route('/_joystick_b', methods=['POST'])
-def joystickb():
-    data = request.get_json()
-    power = data.get('POWER', '0')
-    angle = data.get('ANGLE', '0')
-    print(f'Power: {power}\nAngle: {angle}')
-    
-
-    joystick_v = 100*Vector(mag=float(power),theta=float(angle),deg=False)
-    print(joystick_v)
-    try:
-        jx = -1*intify(joystick_v[0])
-        jy = intify(joystick_v[1])
-        jz = 0
-        print('jx', float(jx),'jy ',float(jy))
-        HTT.cmd_drive(jx,jy,jz,1204)
-        # simplified_radio.sendJoyStickCMD(jx,jy,0)
-    except Exception as e:
-        print(e)
-    return {'Bet':'Got it'}, 200
-
-
-@app.route('/select', methods=['POST'])
-
-def select():
-    data = request.get_json()
-    status = data.get('status', '0')
-    
-    try:
-        HTT.cmd_select(status)
+    finally:
         
-    except Exception as e:
-        print(e)
-    return {'Bet':'Got it'}, 200
-
-@app.route('/twist', methods=['POST'])
-def twist():
-    data = request.get_json()
-    dir = data.get('dir', '1')
-    
-    try:
-        HTT.cmd_twist(dir)
-        HTT.cmd_twist(0)
-        
-    except Exception as e:
-        print(e)
-    return {'Bet':'Got it'}, 200
-
-# Joystick backend
-
-@app.route('/_buttons', methods=['POST'])
-def buttons():
-    # button_map = {
-    #     'down':simplified_radio.sendLowerTorsoCMD,
-    #     'up':simplified_radio.sendRaiseTorsoCMD,
-    #     'Mode:Shift':simplified_radio.sendHalfTorsoCMD,
-    #     'Mode:RC':simplified_radio.get_all_data
-    # } 
-
-    button_map = {
-        'down':HTT.cmd_down,
-        'up':HTT.cmd_up,
-        'Mode:Shift':HTT.cmd_half,
-        'Mode:RC':HTT.info_gps,
-        'Scenario:Start':HTT.cmd_onoff,
-        'Targets:1':HTT.cmd_select_target,
-        'Targets:2':HTT.cmd_select_target,
-        'Targets:3':HTT.cmd_select_target,
-        'Targets:4':HTT.cmd_select_target,
-        'Targets:5':HTT.cmd_select_target,
-        'Targets:6':HTT.cmd_select_target,
-        'Targets:7':HTT.cmd_select_target,
-        ' ':HTT.cmd_select_target,
-
-    } 
-    data = request.get_json()
-    button = data.get('BUTTON', '0')
-    if button != 'Mode:RC' and 'Targets' not in button:
-        button_map[button]()
-    elif 'Targets' in button:
-        button_map[button](int(button.split(':')[1]))
-    else:
-        info = button_map[button]()
-        [print(data, info[data]) for data in info]
-
-    print('Button: ',button)
-    return {'Bet':f'Got it, button {button}'}, 200
-
-# Joystick backend
-@app.route('/_gps/add_way_point', methods=['POST'])
-def add_waypoints():
-    global WAYPOINTS
-    data = request.get_json()
-    target = data.get('TAR', None)
-    lat = float(data.get('LAT', None))
-    lon = float(data.get('LON',None))+90
-    utmX, utmY = latLong2UTM(lat,lon)
-    
-    if WAYPOINTS.get(target,None) == None:
-        WAYPOINTS[target] = {'name':target,
-                         'date':250429,
-                      'time':120222,
-                      'origin':(lat,lon,utmX,utmY),
-                      'waypoints':[]}
-    
-    if target and lat and lon:
-        WAYPOINTS[target]['waypoints'].append((utmX,utmY,1))
-    print('Added: ',(target,lat,lon))
-
-    
-    return {'Bet':f'{target}:({lat},{lon})'}, 200
-
-
-# Joystick backend
-@app.route('/_gps/make_scen', methods=['POST'])
-def upload_scen():
-    global WAYPOINTS, PAUSE
-    data = request.get_json()
-    target = data.get('TAR', None)
-    name = data.get('NAME','DefualtName')
-    WAYPOINTS[target]['name'] = name
-    selected = WAYPOINTS[target]
-    print(selected)
-    PAUSE = True
-    time.sleep(1)
-    HTT.cmd_upload(**selected)
-    time.sleep(5)
-    PAUSE = False
-    
-    return {'Bet':''}, 200
-
-
-@app.route('/_gps/info',methods=['GET'])
-def _gps_info():
-    global PAUSE
-    lat,lon = 36.78021105,13.4600115
-    try:
-        if not PAUSE:
-            print('Not pause')
-            gps_info = HTT.info_gps()
-            serial = gps_info['serial']
-            speed = gps_info['speed']
-            utmx = gps_info['utmX']
-            utmy = gps_info['utmY']
-
-        if serial != 0:
-            lat,lon = UTM2LonLat(utmx,utmy)
-
-            print(lat)
-            
-        else:
-            pass
-            
-        
-    except Exception as e:
-        pass
-    # print(lat)
-    # print(lon)
-    return jsonify({'lon':-90+lon,'lat':lat})
-
-
-
-# Joystick backend
-@app.route('/_power')
-def power():
-
-    
-    HTT.cmd_onoff()
-    return redirect(url_for('controler'))
-
-
-@app.route('/video_feed')
-def video_feed():
-    # Return a response with the frames generated by the webcam
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
-# @app.route("/diag_data")
-# def data():
-#     return jsonify(simplified_radio.P)
-
-
-if __name__ == '__main__':
-    # Run Flask app with access from other devices on the network
-    app.run(host='0.0.0.0', port=5000, debug=False)
+        radio.close()
